@@ -1,0 +1,23 @@
+# coding=utf-8
+EMAIL_ADDRESS = 'filesfromemail@qq.com'
+PASSWORD = None
+PASSWORD_AVAILABLE_SECONDS = 3 * 3600 * 24
+SMTP_HOST = 'smtp.qq.com'
+SMTP_PORT = 465
+IMAP_HOST = 'imap.qq.com'
+IMAP_PORT = 993
+SIGN = 'AzazoFilesTransportation'
+ARCHIVE_TYPE = 'application/octet-stream'
+PROJECT_NAME_HEADER = 'A-ProjectName'
+PROJECT_VERSION_HEADER = 'A-ProjectVersion'
+CODE_SEPARATE = '<-=azazo1=->'
+SHOW_SEPARATE = '-'
+FINISH_DOWNLOAD = 'window_close'
+ENCODING_SIGN = 'Azazo1Nice'
+PASSWORD_JSON_KEY = 'password'
+TEMP_ARCHIVE_NAME = 't.zip'
+TEMP_FOLDER_PATH = 'temp'
+USER_MSG_PATH = 'user.json'
+SAVE_PATH = './get'
+LOG_PATH = 'Azazo1Logs.txt'
+RUN_FILE = 'Main.py'
