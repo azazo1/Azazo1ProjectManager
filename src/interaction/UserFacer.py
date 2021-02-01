@@ -4,11 +4,12 @@ import threading
 import time
 import tkinter as tk
 import tkinter.messagebox as tkmsg
-from typing import List
+from typing import List, Dict
 from src.emails.EmailManager import Downloader, get_by_msg
 from src.Tools import decode, showException, checkProjectRunnable, runProject, deleteProject, checkProjectExists
 import src.Constant as Const
 import json
+import subprocess
 
 
 def destroy(widget):
@@ -45,6 +46,7 @@ class UserFacer:
         self.alive = True
         self.emails = {}  # 邮箱上对应的应用列表
         self.selected = {}
+        self.processes = {}  # type: Dict[str, subprocess.Popen]
         self.downloadTargets: List[str] = []
         self.root = tk.Tk()
         self.root.title('Azazo软件管理')
@@ -180,44 +182,94 @@ class UserFacer:
             self.selected[totalName] = select  # 加入项目选择列表
             frame.pack(expand=True, fill=tk.BOTH)
             if checkProjectRunnable(projectName, version):  # 摆放可运行按钮
-                runButton = tk.Button(frame,
-                                      text='运行',
-                                      command=lambda p=projectName, v=version: runProject(p, v))
+                runButton = tk.Button(
+                    frame,
+                    text='运行',
+                    background='green',
+                    foreground='white',
+                )
+                runButton['command'] = lambda p=projectName, v=version, b=runButton: self.runProject(p, v, b)
                 runButton.pack(side=tk.LEFT)
             if checkProjectExists(projectName, version):
-                openButton = tk.Button(frame,
-                                       text='打开目录',
-                                       command=lambda p=projectName, v=version: os.system(
-                                           f'start explorer '
-                                           f'{os.path.realpath(os.path.join(Const.SAVE_PATH, p + Const.SHOW_SEPARATE + v))}'))
+                openButton = tk.Button(
+                    frame,
+                    text='打开目录',
+                    command=lambda p=projectName, v=version: os.system(
+                        f'start explorer '
+                        f'{os.path.realpath(os.path.join(Const.SAVE_PATH, p + Const.SHOW_SEPARATE + v))}')
+                )
                 openButton.pack(side=tk.LEFT)
-                deleteButton = tk.Button(frame,
-                                         text='删除',
-                                         command=lambda p=projectName, v=version: deleteProject(p, v) or self.refresh())
+                deleteButton = tk.Button(
+                    frame,
+                    text='删除',
+                    command=lambda p=projectName, v=version:
+                    deleteProject(p, v) or self.refresh()
+                )
                 deleteButton.pack(side=tk.LEFT)
             self.root.update()
         if not self.emails:
             frame = tk.Frame(self.topFrame)
-            tk.Button(frame,
-                      text=f'没有项目，请稍后再试或咨询Azazo1',
-                      bg='red',
-                      command=lambda: self.close()
-                      ).pack(expand=True, fill=tk.BOTH)
+            tk.Button(
+                frame,
+                text=f'没有项目，请稍后再试或咨询Azazo1',
+                bg='red',
+                command=lambda: self.close()
+            ).pack(expand=True, fill=tk.BOTH)
             frame.pack(expand=True, fill=tk.BOTH)
         else:
             frame = tk.Frame(self.topFrame)
-            download = tk.Button(frame,
-                                 text='下载',
-                                 command=self.newWindowRetrieve
-                                 )
+            download = tk.Button(
+                frame,
+                text='下载',
+                command=self.newWindowRetrieve
+            )
             download.bind('<space>', lambda *a: download['command']())
             download.pack(side=tk.LEFT)
-            refresh = tk.Button(frame,
-                                text='刷新',
-                                command=self.refresh
-                                )
+            refresh = tk.Button(
+                frame,
+                text='刷新',
+                command=self.refresh
+            )
+            deleteButton = tk.Button(
+                frame,
+                text='删除',
+                command=self.deleteSelectedProjects
+            )
+            deleteButton.pack(side=tk.LEFT)
             refresh.pack(side=tk.LEFT)
             frame.pack(expand=True)
+
+    def deleteSelectedProjects(self):
+        if tkmsg.askyesno('确认删除？', f'是否真的要删除选中的本地项目文件？\n删除操作无法撤销！请做好信息备份！'):
+            for name, result in self.selected.items():  # type: str, tk.BooleanVar
+                if result.get():
+                    project, version = name.split(Const.CODE_SEPARATE)
+                    deleteProject(project, version, False)
+            self.refresh()
+
+    def runProject(self, project: str, version: str, controlButton: tk.Button):
+        self.processes[f'{project + Const.CODE_SEPARATE + version}'] = runProject(project, version)
+        controlButton['text'] = '停止'
+        controlButton['command'] = lambda p=project, v=version, b=controlButton: self.stopProject(p, v, b)
+        controlButton['background'] = 'red'
+        controlButton.after(Const.DELAY_CALL,
+                            self.checkProcessAlive,
+                            project, version, controlButton
+                            )
+
+    def stopProject(self, project: str, version: str, controlButton: tk.Button):
+        controlButton['text'] = '运行'
+        controlButton['command'] = lambda p=project, v=version, b=controlButton: self.runProject(p, v, b)
+        controlButton['background'] = 'green'
+        program = self.processes[project + Const.CODE_SEPARATE + version]  # type:subprocess.Popen
+        program.kill()
+
+    def checkProcessAlive(self, project: str, version: str, button: tk.Button):
+        if self.processes[project + Const.CODE_SEPARATE + version].poll() is not None:
+            self.stopProject(project, version, button)
+            del self.processes[project + Const.CODE_SEPARATE + version]
+        else:
+            button.after(Const.DELAY_CALL, self.checkProcessAlive, project, version, button)
 
     def checkEmptySelect(self):
         for i, b in self.selected.items():

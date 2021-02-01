@@ -7,6 +7,7 @@ import tkinter as tk
 import traceback as tb
 import src.Constant as Const
 import base64
+import subprocess
 
 
 def makedir(path):
@@ -53,7 +54,7 @@ def checkProjectExists(projectName: str, version: str):
         return False
 
 
-def runProject(projectName: str, version: str):
+def runProject(projectName: str, version: str) -> subprocess.Popen:
     target = projectName + Const.SHOW_SEPARATE + version
     dirs = os.listdir(Const.SAVE_PATH)
     if target in dirs:
@@ -62,17 +63,27 @@ def runProject(projectName: str, version: str):
                 # 在对应目录启动文件
                 nowPath = os.popen('cd').read().strip()
                 os.chdir(p2)
-                os.system(f'"{os.path.realpath(Const.RUN_FILE)}"')
+                runPath = os.path.realpath(Const.RUN_FILE)
+                get = subprocess.Popen(['python', f'{runPath}'], creationflags=subprocess.CREATE_NEW_CONSOLE)
                 os.chdir(nowPath)
+                return get
+        else:
+            raise FileNotFoundError(f'Can not find the correct project "{target}"\'s RunFile.')
+    else:
+        raise FileNotFoundError(f'Can not find the correct project "{target}"\'s RunFile.')
 
 
 def deleteProject(projectName: str, version: str, ask=True):
     target = projectName + Const.SHOW_SEPARATE + version
     dirs = os.listdir(Const.SAVE_PATH)
     if target in dirs:
-        if ask and tkmsg.askokcancel('要删除吗？', f'是否真的要删除"{target}"？无法撤销！'):
-            deleteTarget = os.path.join(Const.SAVE_PATH, target)
+        deleteTarget = os.path.join(Const.SAVE_PATH, target)
+        if ask:
+            if tkmsg.askokcancel('要删除吗？', f'是否真的要删除"{target}"？删除操作无法撤销！请做好信息备份！'):
+                removeFileOrDir(deleteTarget)
+        else:
             removeFileOrDir(deleteTarget)
+            print(f'Delete "{deleteTarget}" successfully.')
 
 
 def askForAnswer(title: str, message: str, root: tk.Tk = None, topFrame: tk.Frame = None, destroy=True):
@@ -172,3 +183,7 @@ def showException(title: str = '', message='', attach=''):
     root.focus_force()
     while alive[0]:
         root.update()
+
+
+if __name__ == '__main__':
+    print(getLife(''))

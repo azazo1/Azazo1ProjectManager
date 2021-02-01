@@ -324,10 +324,11 @@ class UnZIPer:
 
 
 def testUpload():
-    u = Uploader('FileDeliver', 'None')
+    Const.PASSWORD = ''
+    u = Uploader('', '')
     try:
         u.login()
-        u.attachFolder(r'D:\Program_Projects\Python_Projects\FileDeliver')
+        u.attachFolder(r'')
         u.send()
     finally:
         u.close()
@@ -341,3 +342,6 @@ def testDownload():
         d.save()
     finally:
         d.close()
+
+if __name__ == '__main__':
+    testUpload()
