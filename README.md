@@ -1,2 +1,2 @@
 Azazo1ProjectManager 0.2
-可以方便的取得azazo1开发的项目，密码需联系azazo1
+可以方便的取得azazo1开发的项目[deprecated]
